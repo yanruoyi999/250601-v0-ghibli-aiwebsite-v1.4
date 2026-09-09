@@ -1,0 +1,56 @@
+name: Wealth Video SDXL Repairs
+
+on:
+  push:
+    branches:
+      - automation/wealth-video-v3-image-samples
+    paths:
+      - automation/wealth_video_v3_sdxl/render_repairs.py
+      - automation/wealth_video_v3_sd_turbo/repair_prompts.json
+      - .github/workflows/wealth-video-sdxl-repairs.yml
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        chunk: [0,1,2,3,4,5,6,7,8,9]
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install renderer
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'torch==2.7.1' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'diffusers==0.35.1' 'transformers>=4.45,<5' 'accelerate>=1.0' safetensors pillow sentencepiece
+      - name: Render SDXL repairs
+        env:
+          HF_HUB_DISABLE_XET: '1'
+        run: python automation/wealth_video_v3_sdxl/render_repairs.py ${{ matrix.chunk }}
+      - name: Verify chunk
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          out=Path('automation/wealth_video_v3_sdxl/out_repairs')
+          files=sorted(out.glob('shot_*.jpg'))
+          assert 4 <= len(files) <= 5, len(files)
+          for p in files: assert Image.open(p).size==(1920,1080),p
+          print('verified',len(files))
+          PY
+      - name: Upload repairs
+        uses: actions/upload-artifact@v4
+        with:
+          name: wealth-video-v3-sdxl-repairs-${{ matrix.chunk }}
+          path: automation/wealth_video_v3_sdxl/out_repairs/shot_*.jpg
+          if-no-files-found: error
+          compression-level: 1
+          retention-days: 7
