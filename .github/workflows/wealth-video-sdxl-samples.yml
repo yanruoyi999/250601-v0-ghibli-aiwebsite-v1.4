@@ -1,0 +1,50 @@
+name: Wealth Video SDXL Turbo Samples
+
+on:
+  push:
+    branches:
+      - automation/wealth-video-v3-image-samples
+    paths:
+      - automation/wealth_video_v3_sdxl/**
+      - .github/workflows/wealth-video-sdxl-samples.yml
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install renderer
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install 'torch==2.7.1' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'diffusers==0.35.1' 'transformers>=4.45,<5' 'accelerate>=1.0' safetensors pillow sentencepiece
+      - name: Render SDXL samples
+        env:
+          HF_HUB_DISABLE_XET: '1'
+        run: python automation/wealth_video_v3_sdxl/test_sdxl.py
+      - name: Verify outputs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          out=Path('automation/wealth_video_v3_sdxl/out')
+          files=sorted(out.glob('shot_*_sdxl.jpg'))
+          assert len(files)==6, files
+          for p in files: assert Image.open(p).size==(1920,1080),p
+          assert (out/'sdxl_contact.jpg').exists()
+          print('verified',len(files))
+          PY
+      - name: Upload samples
+        uses: actions/upload-artifact@v4
+        with:
+          name: wealth-video-sdxl-turbo-samples
+          path: automation/wealth_video_v3_sdxl/out/*
+          if-no-files-found: error
+          retention-days: 7
