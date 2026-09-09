@@ -1,6 +1,6 @@
 from pathlib import Path
 import torch
-from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
+from diffusers import StableDiffusionPipeline
 from PIL import Image, ImageEnhance, ImageFilter, ImageDraw
 OUT=Path(__file__).resolve().parent/'out'; OUT.mkdir(parents=True,exist_ok=True)
 items=[
@@ -9,7 +9,6 @@ items=[
 (140,2140,'cinematic oil painting on canvas, visible impasto brush strokes, bright airy Impressionist light. A dark-haired Western man in his late thirties sits in a sunlit cafe with a notebook and phone face down, looking outside toward a tree-lined street and ordinary family life, hopeful realistic choice. sky blue, spring green, butter yellow, lavender, terracotta, gold. no text'),
 ]
 pipe=StableDiffusionPipeline.from_pretrained('Lykon/dreamshaper-8',torch_dtype=torch.float32,safety_checker=None,requires_safety_checker=False)
-pipe.scheduler=DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
 pipe.enable_attention_slicing(); pipe=pipe.to('cpu'); torch.set_num_threads(2)
 paths=[]
 neg='photo, photorealistic, 3d render, anime, child, text, subtitles, readable words, logo, watermark, collage, split screen, fantasy portal, giant machinery, deformed hands, extra fingers, grayscale, red-blue duotone'
